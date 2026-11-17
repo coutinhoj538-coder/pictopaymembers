@@ -302,6 +302,14 @@ function Library() {
                     </summary>
                     {course.modules.map((module) => (
                       <div className="module-group" key={module.id}>
+                        {module.coverUrl && (
+                          <img
+                            className="module-cover-image"
+                            src={module.coverUrl}
+                            alt={`Capa de ${module.title}`}
+                            loading="lazy"
+                          />
+                        )}
                         <h4>{module.title}</h4>
                         {[...module.lessons]
                           .sort((a, b) => a.position - b.position)

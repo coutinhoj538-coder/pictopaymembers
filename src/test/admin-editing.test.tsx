@@ -58,7 +58,13 @@ it("edits an existing module by its ID and exposes lesson and course editing", a
   fireEvent.click(screen.getByRole("button", { name: "Salvar módulo" }));
   await waitFor(() =>
     expect(mocks.saveModule).toHaveBeenCalledWith({
-      data: { id: "module", course_id: "course", title: "Módulo atualizado", position: 3 },
+      data: {
+        id: "module",
+        course_id: "course",
+        title: "Módulo atualizado",
+        position: 3,
+        cover_path: null,
+      },
     }),
   );
   fireEvent.click(screen.getByRole("button", { name: /Aula existente.*Editar aula/ }));

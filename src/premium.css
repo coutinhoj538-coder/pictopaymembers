@@ -1546,3 +1546,22 @@ progress::-moz-progress-bar {
 .module-lesson-editor > .editor-band {
   margin-top: 12px;
 }
+.module-cover-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  border-radius: 10px;
+  margin: 12px 0;
+}
+.admin-module-cover {
+  width: calc(100% - 32px);
+  margin: 0 16px 16px;
+}
+.module-cover-field {
+  min-width: 0;
+}
+.module-cover-field input {
+  display: block;
+  margin-top: 8px;
+}

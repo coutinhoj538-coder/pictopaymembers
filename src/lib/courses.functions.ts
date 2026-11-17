@@ -4,13 +4,21 @@ import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 import { validateVideoUrl } from './platform';
 
 export const getLibrary = createServerFn({ method: 'GET' }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
-  const { data: courses, error } = await context.supabase.from('courses').select('*, modules(id, title, position, lessons(id, title, published, position))').order('created_at');
+  const { data: courses, error } = await context.supabase.from('courses').select('*, modules(id, title, position, cover_path, lessons(id, title, published, position))').order('created_at');
   if (error) throw new Error(error.message);
   const { data: progress, error: progressError } = await context.supabase.from('lesson_progress').select('*').eq('user_id', context.userId);
   if (progressError) throw new Error(progressError.message);
   const { data: isAdmin, error: roleError } = await context.supabase.rpc('has_role', { _user_id: context.userId, _role: 'admin' });
   if (roleError) throw new Error(roleError.message);
-  return { courses: courses ?? [], progress: progress ?? [], isAdmin: !!isAdmin };
+  const withCovers = await Promise.all((courses ?? []).map(async course => ({
+    ...course,
+    modules: await Promise.all(course.modules.map(async module => {
+      if (!module.cover_path) return { ...module, coverUrl: null };
+      const { data: signed, error: coverError } = await context.supabase.storage.from('course-files').createSignedUrl(module.cover_path, 3600);
+      return { ...module, coverUrl: coverError ? null : signed?.signedUrl ?? null };
+    })),
+  })));
+  return { courses: withCovers, progress: progress ?? [], isAdmin: !!isAdmin };
 });
 
 export const getLesson = createServerFn({ method: 'GET' }).middleware([requireSupabaseAuth]).inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input)).handler(async ({ data, context }) => {
@@ -46,8 +54,9 @@ export const saveCourse = createServerFn({ method: 'POST' }).middleware([require
   return course;
 });
 
-export const saveModule = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator((input: unknown) => z.object({ id: z.string().uuid().optional(), course_id: z.string().uuid(), title: z.string().trim().min(1), position: z.number().int().nonnegative() }).parse(input)).handler(async ({ data, context }) => {
-  const { id, ...row } = data;
+export const saveModule = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator((input: unknown) => z.object({ id: z.string().uuid().optional(), course_id: z.string().uuid(), title: z.string().trim().min(1), position: z.number().int().nonnegative(), cover_path: z.string().regex(/^module-covers\/[a-zA-Z0-9-]+\.(jpg|png|webp)$/).nullable().optional() }).parse(input)).handler(async ({ data, context }) => {
+  const { id, cover_path, ...fields } = data;
+  const row = { ...fields, ...(cover_path !== undefined ? { cover_path } : {}) };
   const query = id
     ? context.supabase.from('modules').update(row).eq('id', id).eq('course_id', row.course_id)
     : context.supabase.from('modules').insert(row);

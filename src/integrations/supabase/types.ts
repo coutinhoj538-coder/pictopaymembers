@@ -143,18 +143,21 @@ export type Database = {
       modules: {
         Row: {
           course_id: string
+          cover_path: string | null
           id: string
           position: number
           title: string
         }
         Insert: {
           course_id: string
+          cover_path?: string | null
           id?: string
           position?: number
           title: string
         }
         Update: {
           course_id?: string
+          cover_path?: string | null
           id?: string
           position?: number
           title?: string
@@ -181,7 +184,7 @@ export type Database = {
         Insert: {
           course_id: string
           email: string
-          event_at: string
+          event_at?: string
           external_order_id: string
           id?: string
           status: string

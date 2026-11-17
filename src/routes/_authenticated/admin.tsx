@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { PlatformShell } from "@/components/platform-shell";
 import { Button } from "@/components/ui/button";
+import { ModuleCoverField, type ModuleCover } from "@/components/module-cover-field";
 import { libraryQuery, lessonQuery } from "@/lib/course-queries";
 import { saveCourse, saveModule, saveLesson, saveMaterial } from "@/lib/courses.functions";
 import { metadata, CHECKOUT_URL } from "@/lib/platform";
@@ -161,12 +162,19 @@ function Admin() {
                         </span>
                         <span>{module.lessons.length} aulas</span>
                       </summary>
+                      {module.coverUrl && (
+                        <img
+                          className="module-cover-image admin-module-cover"
+                          src={module.coverUrl}
+                          alt={`Capa de ${module.title}`}
+                        />
+                      )}
                       <details className="module-edit">
                         <summary>
                           <Pencil /> Editar módulo
                         </summary>
                         <ModuleEditor
-                          key={`${module.id}-${module.title}-${module.position}`}
+                          key={`${module.id}-${module.title}-${module.position}-${module.cover_path}`}
                           module={module}
                           courseId={course.id}
                           onSaved={refresh}
@@ -351,14 +359,17 @@ function ModuleForm({
   const save = useServerFn(saveModule);
   const { busy, run } = useSaveAction();
   const [title, setTitle] = useState("");
+  const [cover, setCover] = useState<ModuleCover>({ path: null, url: null });
+  const [uploading, setUploading] = useState(false);
   return (
     <form
-      className="editor-row"
+      className="editor-form"
       onSubmit={(e) => {
         e.preventDefault();
         void run(async () => {
-          await save({ data: { course_id: courseId, title, position } });
+          await save({ data: { course_id: courseId, title, position, cover_path: cover.path } });
           setTitle("");
+          setCover({ path: null, url: null });
           await onSaved();
         });
       }}
@@ -370,7 +381,8 @@ function ModuleForm({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
       />
-      <Button variant="outline" disabled={busy}>
+      <ModuleCoverField value={cover} onChange={setCover} onBusy={setUploading} />
+      <Button variant="outline" disabled={busy || uploading}>
         <Plus />
         {busy ? "Salvando..." : "Adicionar módulo"}
       </Button>
@@ -382,7 +394,13 @@ function ModuleEditor({
   courseId,
   onSaved,
 }: {
-  module: { id: string; title: string; position: number };
+  module: {
+    id: string;
+    title: string;
+    position: number;
+    cover_path?: string | null;
+    coverUrl?: string | null;
+  };
   courseId: string;
   onSaved: () => Promise<void>;
 }) {
@@ -390,13 +408,20 @@ function ModuleEditor({
   const { busy, run } = useSaveAction();
   const [title, setTitle] = useState(module.title);
   const [position, setPosition] = useState(module.position);
+  const [cover, setCover] = useState<ModuleCover>({
+    path: module.cover_path ?? null,
+    url: module.coverUrl ?? null,
+  });
+  const [uploading, setUploading] = useState(false);
   return (
     <form
       className="editor-form"
       onSubmit={(event) => {
         event.preventDefault();
         void run(async () => {
-          await save({ data: { id: module.id, course_id: courseId, title, position } });
+          await save({
+            data: { id: module.id, course_id: courseId, title, position, cover_path: cover.path },
+          });
           await onSaved();
         });
       }}
@@ -416,8 +441,9 @@ function ModuleEditor({
           onChange={(event) => setPosition(Number(event.target.value))}
         />
       </label>
+      <ModuleCoverField value={cover} onChange={setCover} onBusy={setUploading} />
       <div className="editor-actions">
-        <Button disabled={busy}>
+        <Button disabled={busy || uploading}>
           <Save />
           {busy ? "Salvando..." : "Salvar módulo"}
         </Button>
