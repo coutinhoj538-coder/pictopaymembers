@@ -38,8 +38,9 @@ export const saveProgress = createServerFn({ method: 'POST' }).middleware([requi
 });
 
 export const saveCourse = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator((input: unknown) => z.object({ id: z.string().uuid().optional(), title: z.string().trim().min(1), description: z.string(), checkout_product_id: z.string().trim(), published: z.boolean() }).parse(input)).handler(async ({ data, context }) => {
-  const row = { ...data, checkout_product_id: data.checkout_product_id || null };
-  const query = data.id ? context.supabase.from('courses').update(row).eq('id', data.id) : context.supabase.from('courses').insert(row);
+  const { id, ...fields } = data;
+  const row = { ...fields, checkout_product_id: data.checkout_product_id || null };
+  const query = id ? context.supabase.from('courses').update(row).eq('id', id) : context.supabase.from('courses').insert(row);
   const { data: course, error } = await query.select().single();
   if (error) throw new Error(error.message);
   return course;
@@ -53,7 +54,8 @@ export const saveModule = createServerFn({ method: 'POST' }).middleware([require
 
 export const saveLesson = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator((input: unknown) => z.object({ id: z.string().uuid().optional(), module_id: z.string().uuid(), title: z.string().trim().min(1), video_url: z.string().min(1), provider: z.enum(['direct', 'storage']), published: z.boolean(), position: z.number().int().nonnegative() }).parse(input)).handler(async ({ data, context }) => {
   if (data.provider === 'direct') validateVideoUrl(data.video_url);
-  const query = data.id ? context.supabase.from('lessons').update(data).eq('id', data.id) : context.supabase.from('lessons').insert(data);
+  const { id, ...row } = data;
+  const query = id ? context.supabase.from('lessons').update(row).eq('id', id) : context.supabase.from('lessons').insert(row);
   const { data: lesson, error } = await query.select().single();
   if (error) throw new Error(error.message);
   return lesson;

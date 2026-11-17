@@ -11,6 +11,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import premiumCss from "../premium.css?url";
 import { AuthProvider } from '@/components/auth-context';
 import { Toaster } from '@/components/ui/sonner';
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -98,6 +99,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "stylesheet", href: premiumCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
