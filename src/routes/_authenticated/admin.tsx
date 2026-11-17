@@ -407,7 +407,7 @@ function LessonForm({
             value={provider}
             onChange={(e) => setProvider(e.target.value as "direct" | "storage")}
           >
-            <option value="direct">Link direto HTTPS</option>
+            <option value="direct">Link HTTPS ou YouTube</option>
             <option value="storage">Arquivo no armazenamento</option>
           </select>
         </label>
@@ -426,7 +426,7 @@ function LessonForm({
       </div>
       <label>
         {provider === "direct"
-          ? "URL de reprodução (MP4 / WebM)"
+          ? "Link do vídeo (YouTube, MP4 ou WebM)"
           : "Caminho do arquivo em course-files"}
         <input
           type={provider === "direct" ? "url" : "text"}
