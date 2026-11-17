@@ -2,7 +2,16 @@ import { useState, type FormEvent } from "react";
 import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, Layers3, Play, Plus, Save, ShieldCheck, ArrowUpRight } from "lucide-react";
+import {
+  BookOpen,
+  Layers3,
+  Pencil,
+  Play,
+  Plus,
+  Save,
+  ShieldCheck,
+  ArrowUpRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import { PlatformShell } from "@/components/platform-shell";
 import { Button } from "@/components/ui/button";
@@ -114,7 +123,7 @@ function Admin() {
               <BookOpen />
               <span>
                 {c.title}
-                <small>{c.published ? "Publicado" : "Rascunho"}</small>
+                <small>{c.published ? "Publicado" : "Rascunho"} · Editar curso completo</small>
               </span>
             </Button>
           ))}
@@ -152,6 +161,17 @@ function Admin() {
                         </span>
                         <span>{module.lessons.length} aulas</span>
                       </summary>
+                      <details className="module-edit">
+                        <summary>
+                          <Pencil /> Editar módulo
+                        </summary>
+                        <ModuleEditor
+                          key={`${module.id}-${module.title}-${module.position}`}
+                          module={module}
+                          courseId={course.id}
+                          onSaved={refresh}
+                        />
+                      </details>
                       <div className="saved-lessons">
                         {[...module.lessons]
                           .sort((a, b) => a.position - b.position)
@@ -160,12 +180,16 @@ function Admin() {
                               <Button
                                 variant="nav"
                                 aria-pressed={editingLesson === lesson.id}
-                                onClick={() => setEditingLesson(lesson.id)}
+                                onClick={() =>
+                                  setEditingLesson(editingLesson === lesson.id ? null : lesson.id)
+                                }
                               >
-                                <Play />
+                                <Pencil />
                                 <span>
                                   {lesson.title}
-                                  <small>{lesson.published ? "Publicada" : "Rascunho"}</small>
+                                  <small>
+                                    {lesson.published ? "Publicada" : "Rascunho"} · Editar aula
+                                  </small>
                                 </span>
                               </Button>
                               <Button variant="ghost" size="icon" asChild>
@@ -180,6 +204,19 @@ function Admin() {
                             </div>
                           ))}
                       </div>
+                      {module.lessons.some((lesson) => lesson.id === editingLesson) &&
+                        editingLesson && (
+                          <div className="module-lesson-editor">
+                            <Button variant="ghost" onClick={() => setEditingLesson(null)}>
+                              Fechar edição da aula
+                            </Button>
+                            <LessonEditor
+                              key={editingLesson}
+                              id={editingLesson}
+                              onSaved={refresh}
+                            />
+                          </div>
+                        )}
                       <LessonForm
                         moduleId={module.id}
                         position={module.lessons.reduce(
@@ -191,9 +228,6 @@ function Admin() {
                     </details>
                   ))}
               </section>
-              {editingLesson && (
-                <LessonEditor key={editingLesson} id={editingLesson} onSaved={refresh} />
-              )}
             </>
           )}
           <div className="admin-notice">
@@ -340,6 +374,54 @@ function ModuleForm({
         <Plus />
         {busy ? "Salvando..." : "Adicionar módulo"}
       </Button>
+    </form>
+  );
+}
+function ModuleEditor({
+  module,
+  courseId,
+  onSaved,
+}: {
+  module: { id: string; title: string; position: number };
+  courseId: string;
+  onSaved: () => Promise<void>;
+}) {
+  const save = useServerFn(saveModule);
+  const { busy, run } = useSaveAction();
+  const [title, setTitle] = useState(module.title);
+  const [position, setPosition] = useState(module.position);
+  return (
+    <form
+      className="editor-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void run(async () => {
+          await save({ data: { id: module.id, course_id: courseId, title, position } });
+          await onSaved();
+        });
+      }}
+    >
+      <label>
+        Título do módulo
+        <input required value={title} onChange={(event) => setTitle(event.target.value)} />
+      </label>
+      <label>
+        Ordem do módulo
+        <input
+          type="number"
+          required
+          min={0}
+          step={1}
+          value={position}
+          onChange={(event) => setPosition(Number(event.target.value))}
+        />
+      </label>
+      <div className="editor-actions">
+        <Button disabled={busy}>
+          <Save />
+          {busy ? "Salvando..." : "Salvar módulo"}
+        </Button>
+      </div>
     </form>
   );
 }

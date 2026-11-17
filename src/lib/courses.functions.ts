@@ -46,8 +46,12 @@ export const saveCourse = createServerFn({ method: 'POST' }).middleware([require
   return course;
 });
 
-export const saveModule = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator((input: unknown) => z.object({ course_id: z.string().uuid(), title: z.string().trim().min(1), position: z.number().int().nonnegative() }).parse(input)).handler(async ({ data, context }) => {
-  const { data: module, error } = await context.supabase.from('modules').insert(data).select().single();
+export const saveModule = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator((input: unknown) => z.object({ id: z.string().uuid().optional(), course_id: z.string().uuid(), title: z.string().trim().min(1), position: z.number().int().nonnegative() }).parse(input)).handler(async ({ data, context }) => {
+  const { id, ...row } = data;
+  const query = id
+    ? context.supabase.from('modules').update(row).eq('id', id).eq('course_id', row.course_id)
+    : context.supabase.from('modules').insert(row);
+  const { data: module, error } = await query.select().single();
   if (error) throw new Error(error.message);
   return module;
 });
